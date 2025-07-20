@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Temperature Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* พื้นหลังเคลื่อนไหว */
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      color: white;
+      text-align: center;
+      background: linear-gradient(-45deg, #ff416c, #ff4b2b, #1e90ff, #6a11cb);
+      background-size: 400% 400%;
+      animation: gradientBG 12s ease infinite;
+      min-height: 100vh;
+      padding: 40px;
+    }
+
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* การ์ดใสแบบ glass */
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      padding: 30px;
+      max-width: 1000px;
+      margin: 30px auto;
+    }
+
+    #gauge {
+      font-size: 64px;
+      font-weight: bold;
+      color: #00e676;
+      transition: transform 0.3s ease;
+    }
+
+    #gauge:hover {
+      transform: scale(1.1);
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 500px !important;
+    }
+
+    h2, h3 {
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>🌡️ Current Temperature</h2>
+    <div id="gauge">-- °C</div>
+  </div>
+
+  <div class="card">
+    <h3>📈 Last 100 Temperature Readings</h3>
+    <canvas id="lineChart"></canvas>
+  </div>
+  <div style="margin-top: 30px;">
+    <a href="/report.html" style="color: white; text-decoration: underline;">📊 ดูรายงานย้อนหลัง</a>
+  </div>
+
+  <script>
+    const gauge = document.getElementById('gauge');
+    const ctx = document.getElementById('lineChart').getContext('2d');
+
+    const lineChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Temperature (°C)',
+          data: [],
+          borderColor: '#00e676',
+          backgroundColor: 'rgba(0, 230, 118, 0.2)',
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        animation: {
+          duration: 1000,
+          easing: 'easeOutQuart'
+        },
+        scales: {
+          x: {
+            ticks: { color: '#ccc' },
+            title: { display: true, text: 'Time', color: '#ccc' }
+          },
+          y: {
+            ticks: { color: '#ccc' },
+            title: { display: true, text: '°C', color: '#ccc' }
+          }
+        },
+        plugins: {
+          legend: { labels: { color: '#ccc' } }
+        }
+      }
+    });
+
+    async function updateGauge() {
+      const res = await fetch('/api/latest-value');
+      const data = await res.json();
+      if (data && data.value) {
+        gauge.innerText = `${data.value} °C`;
+      }
+    }
+
+    async function updateChart() {
+      const res = await fetch('/api/history');
+      const data = await res.json();
+      if (data && Array.isArray(data)) {
+        lineChart.data.labels = data.map(d => new Date(d.timestamp).toLocaleTimeString());
+        lineChart.data.datasets[0].data = data.map(d => d.value);
+        lineChart.update();
+      }
+    }
+
+    updateGauge();
+    updateChart();
+    setInterval(() => {
+      updateGauge();
+      updateChart();
+    }, 10000);
+  </script>
+</body>
+</html>

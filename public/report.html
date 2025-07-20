@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Temperature Report</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #121212;
+      color: #fff;
+      padding: 20px;
+    }
+    h2 {
+      color: #00d8ff;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 40px;
+    }
+    th, td {
+      border: 1px solid #555;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #333;
+    }
+    a.button {
+      display: inline-block;
+      background-color: #00d8ff;
+      color: black;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 5px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>📊 รายงานย้อนหลัง</h2>
+
+  <div id="reportContent">
+    <p>กำลังโหลดข้อมูล...</p>
+  </div>
+
+  <!-- 🔙 ปุ่มกลับไปหน้าแรก -->
+  <a href="/index.html" class="button">🔙 กลับหน้าแรก</a>
+
+  <script>
+    async function loadReport() {
+      try {
+        const res = await fetch('/api/report');
+        if (!res.ok) throw new Error('Failed to fetch data');
+        const data = await res.json();
+
+        const content = document.getElementById('reportContent');
+        content.innerHTML = '';
+
+        if (data.daily && data.daily.length > 0) {
+          const dailyTable = generateTable(data.daily, '📅 รายวัน');
+          content.appendChild(dailyTable);
+        }
+
+        if (data.monthly && data.monthly.length > 0) {
+          const monthlyTable = generateTable(data.monthly, '🗓️ รายเดือน');
+          content.appendChild(monthlyTable);
+        }
+
+        if ((!data.daily || data.daily.length === 0) && (!data.monthly || data.monthly.length === 0)) {
+          content.innerHTML = '<p>ไม่มีข้อมูลแสดงผล</p>';
+        }
+
+      } catch (err) {
+        document.getElementById('reportContent').innerHTML = `<p style="color: red;">❌ เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`;
+        console.error(err);
+      }
+    }
+
+    function generateTable(data, title) {
+      const table = document.createElement('table');
+
+      const thead = document.createElement('thead');
+      thead.innerHTML = `
+        <tr>
+          <th colspan="4">${title}</th>
+        </tr>
+        <tr>
+          <th>วันที่</th>
+          <th>สูงสุด (°C)</th>
+          <th>ต่ำสุด (°C)</th>
+          <th>เฉลี่ย (°C)</th>
+        </tr>
+      `;
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      data.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.date}</td>
+          <td>${row.max.toFixed(2)}</td>
+          <td>${row.min.toFixed(2)}</td>
+          <td>${row.avg.toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+
+      return table;
+    }
+
+    loadReport();
+  </script>
+</body>
+</html>
